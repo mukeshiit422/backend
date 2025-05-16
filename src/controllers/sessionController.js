@@ -10,7 +10,7 @@ exports.createSession = async (req, res) => {
   const redis = req.app.locals.redisClient;
 
   await redis.setEx(sessionId, 300, JSON.stringify(data));
-  const qrDataUrl = await QRCode.toDataURL(`http://localhost:3000/auth/${sessionId}`);
+  const qrDataUrl = await QRCode.toDataURL(`${process.env.FRONTEND_URL }/auth/${sessionId}`);
   res.json({ sessionId, qrCode: qrDataUrl });
 };
 
