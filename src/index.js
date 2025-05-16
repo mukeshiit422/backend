@@ -12,15 +12,34 @@ app.use(cors({ origin: 'https://qrlogin.vercel.app', credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-// Redis Client
+
+const redisUrl = process.env.REDIS_URL || "redis://localhost:6379"
+ const isSecure = redisUrl.startsWith('rediss://');
+
 const client = redis.createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379'
+  url: redisUrl,
+  ...(isSecure && {
+    socket: {
+      tls: true,
+      rejectUnauthorized: false
+    }
+  })
 });
-client.connect();
-app.locals.redisClient = client;
+
+client.on('error', (err) => console.error('Redis Client Error', err));
+
+client.connect().catch(console.error);
 
 // Sequelize for PostgreSQL
-const sequelize = new Sequelize(process.env.DB_URL || 'postgres://postgres:843329@localhost:5432/qrlogin');
+const sequelize = new Sequelize(process.env.DB_URL || 'postgres://postgres:843329@localhost:5432/qrlogin',{
+  dialect: 'postgres',
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false // Accept self-signed certs (Render often uses these)
+    }
+  }
+});
 (async () => {
   try {
     await sequelize.authenticate();
